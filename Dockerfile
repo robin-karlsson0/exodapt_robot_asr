@@ -21,4 +21,6 @@ RUN pip install PyAudio
 # RUN adduser $USER audio
 RUN adduser $USER pulse-access
 
+COPY asr_client.py .
+
 CMD ["/bin/bash"]

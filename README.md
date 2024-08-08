@@ -33,7 +33,13 @@ $ bash riva_start.sh
 ROS 2 bridge
 ```
 docker build -t robot_asr .
-docker run --runtime nvidia -it --rm --network=host --privileged -v /dev/bus/usb:/dev/bus/usb robot_asr
+sh riva_client_start.sh
+
+# Run ASR client that outputs speech to text file
+python3 asr_client.py --server-uri=172.20.137.207:50051 >> out.txt
+
+# Run ROS bridge node that reads outputted text and publishes to topic
+
 ```
 
 Jetson containers
