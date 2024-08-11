@@ -1,6 +1,7 @@
-FROM ros:humble-ros-base
+FROM ubuntu:22.04
 
 RUN apt-get -y update && apt-get upgrade -y && apt-get install -y \
+    git \
     vim \
     python3-pip \
     portaudio19-dev \
@@ -22,5 +23,6 @@ RUN pip install PyAudio
 RUN adduser $USER pulse-access
 
 COPY asr_client.py .
+COPY get_index.py .
 
 CMD ["/bin/bash"]

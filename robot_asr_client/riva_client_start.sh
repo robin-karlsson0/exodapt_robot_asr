@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker run -it --rm --network=host --privileged -v /dev/bus/usb:/dev/bus/usb robot_asr
+docker run -it --rm --network=host --privileged -v /dev/bus/usb:/dev/bus/usb -v /tmp:/tmp robot_asr

@@ -1,7 +1,10 @@
 import argparse
+import sys
 
 import riva.client
 import riva.client.audio_io
+
+sys.stdout.reconfigure(line_buffering=True)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ASR Client')
