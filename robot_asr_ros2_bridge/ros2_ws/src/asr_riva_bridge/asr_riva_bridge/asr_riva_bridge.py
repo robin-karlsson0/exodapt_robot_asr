@@ -1,31 +1,42 @@
-import os
-
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
+from std_msgs.msg import Bool, String
 
 
 class AsrRivaBridge(Node):
     '''
     '''
+
     def __init__(self):
         super().__init__('asr_riva_bridge')
 
         # Declare parameters with default values
         self.declare_parameter('asr_topic', 'asr')
-        self.declare_parameter('pub_freq', '0.5')  # [s]
+        self.declare_parameter('pub_freq', '0.1')  # [s]
         self.declare_parameter('asr_output_file', '/tmp/out.txt')
 
         # Get parameter values
         asr_topic = self.get_parameter('asr_topic').value
-        pub_freq = float(self.get_parameter('pub_freq').value)
+        self.pub_freq = float(self.get_parameter('pub_freq').value)
         self.asr_output_file = self.get_parameter('asr_output_file').value
 
         self.publisher_ = self.create_publisher(String, asr_topic, 10)
 
-        self.timer = self.create_timer(pub_freq, self.timer_callback)
-    
+        self.timer = self.create_timer(self.pub_freq, self.timer_callback)
+
+        # Robot is speaking flag
+        self.tts_is_speaking_sub = self.create_subscription(
+            Bool, 'tts_is_speaking', self.tts_is_speaking_callback, 10)
+        self.is_speaking_skip_first_asr = False
+
     def timer_callback(self):
+        '''
+        Callback function reading ASR output from file and publishing it to
+        a ROS2 topic.
+
+        NOTE Robot spoken output from the TTS topic is filtered out using the
+        'tts_is_speaking' topic.
+        '''
         # Remove ASR output file after reading
         while True:
             try:
@@ -40,8 +51,14 @@ class AsrRivaBridge(Node):
                 self.get_logger().info(f"Failed to read and write file: {e}")
         if len(asr_output) == 0:
             return
+
+        # Always skip first ASR after TTS has stopped
+        if self.is_speaking_skip_first_asr:
+            self.is_speaking_skip_first_asr = False
+            return
+
         asr_output = self.preprocess_asr_output(asr_output)
-        msg = String()  
+        msg = String()
         msg.data = asr_output
         self.publisher_.publish(msg)
         self.get_logger().info(f"Publishing: {asr_output}")
@@ -50,6 +67,17 @@ class AsrRivaBridge(Node):
         asr_output = asr_output.replace('## ', '')
         asr_output = asr_output.replace(' \n', '')
         return asr_output
+
+    def tts_is_speaking_callback(self, msg):
+        is_speaking = msg.data
+        if is_speaking:
+            self.get_logger().info("Robot is speaking, stopping ASR")
+            self.timer.cancel()
+            self.is_speaking_skip_first_asr = True
+        else:
+            self.get_logger().info("Robot stopped speaking, restarting ASR")
+            self.timer = self.create_timer(self.pub_freq, self.timer_callback)
+
 
 def main(args=None):
     rclpy.init(args=args)
