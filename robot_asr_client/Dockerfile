@@ -24,5 +24,7 @@ RUN adduser $USER pulse-access
 
 COPY asr_client.py .
 COPY get_index.py .
+COPY startup.sh /
+RUN chmod +x /startup.sh
 
-CMD ["/bin/bash"]
+ENTRYPOINT ["/startup.sh"]
