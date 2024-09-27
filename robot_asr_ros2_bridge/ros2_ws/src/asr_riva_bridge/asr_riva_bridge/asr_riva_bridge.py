@@ -59,7 +59,7 @@ class AsrRivaBridge(Node):
 
         asr_output = self.preprocess_asr_output(asr_output)
         msg = String()
-        msg.data = asr_output
+        msg.data = '<User said> ' + asr_output
         self.publisher_.publish(msg)
         self.get_logger().info(f"Publishing: {asr_output}")
 
