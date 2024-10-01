@@ -2,7 +2,7 @@ import argparse
 import sys
 
 import riva.client
-import riva.client.audio_io
+import audio_io_tts
 
 sys.stdout.reconfigure(line_buffering=True)
 
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         interim_results=False,
     )
 
-    with riva.client.audio_io.MicrophoneStream(
+    with audio_io_tts.MicrophoneStream(
         args.sample_rate_hz,
         args.file_streaming_chunk,
         device=args.input_device,

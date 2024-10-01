@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Bool, String
+from std_msgs.msg import String
 
 
 class AsrRivaBridge(Node):
@@ -23,11 +23,6 @@ class AsrRivaBridge(Node):
         self.publisher_ = self.create_publisher(String, asr_topic, 10)
 
         self.timer = self.create_timer(self.pub_freq, self.timer_callback)
-
-        # Robot is speaking flag
-        self.tts_is_speaking_sub = self.create_subscription(
-            Bool, 'tts_is_speaking', self.tts_is_speaking_callback, 10)
-        self.is_speaking_skip_first_asr = False
 
     def timer_callback(self):
         '''
@@ -52,11 +47,6 @@ class AsrRivaBridge(Node):
         if len(asr_output) == 0:
             return
 
-        # Always skip first ASR after TTS has stopped
-        if self.is_speaking_skip_first_asr:
-            self.is_speaking_skip_first_asr = False
-            return
-
         asr_output = self.preprocess_asr_output(asr_output)
         msg = String()
         msg.data = '<User said> ' + asr_output
@@ -67,16 +57,6 @@ class AsrRivaBridge(Node):
         asr_output = asr_output.replace('## ', '')
         asr_output = asr_output.replace(' \n', '')
         return asr_output
-
-    def tts_is_speaking_callback(self, msg):
-        is_speaking = msg.data
-        if is_speaking:
-            self.get_logger().info("Robot is speaking, stopping ASR")
-            self.timer.cancel()
-            self.is_speaking_skip_first_asr = True
-        else:
-            self.get_logger().info("Robot stopped speaking, restarting ASR")
-            self.timer = self.create_timer(self.pub_freq, self.timer_callback)
 
 
 def main(args=None):
