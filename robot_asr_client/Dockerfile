@@ -23,6 +23,7 @@ RUN pip install PyAudio
 RUN adduser $USER pulse-access
 
 COPY asr_client.py .
+COPY audio_io_tts.py .
 COPY get_index.py .
 COPY startup.sh /
 RUN chmod +x /startup.sh

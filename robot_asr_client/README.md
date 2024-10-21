@@ -30,6 +30,14 @@ $ bash riva_start.sh
 
 # Riva SDK Client
 
+### ASR Client
+
+Creates and reads a file `/tmp/tts_is_speaking.txt` presumed to contain `0` or `1` indicating if TTS is running.
+
+The  `_fill_buffer()` callback function in `MicrophoneStream` only buffer audio data from mic when `0`.
+
+NOTE: Presumes the TTS node updates the state!
+
 ### ROS 2 bridge
 
 First, run the containerized ASR client that transmits microphone data to the Riva server and appends the resulting text to a file. The file is readable and writable by users outside the container, and is used as a text buffer.
