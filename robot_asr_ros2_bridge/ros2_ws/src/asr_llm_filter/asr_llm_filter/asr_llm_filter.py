@@ -1,3 +1,4 @@
+import textwrap
 import time
 
 import rclpy
@@ -95,17 +96,14 @@ class AsrLlmFilter(Node):
 
         state = visual_info + '\n\n' + state_chunks
 
-        user_msg = asr_filter_pt(self.asr, state)
+        self.user_msg = asr_filter_pt(self.asr, state)
 
         llm_goal = LLM.Goal()
         llm_goal.system_prompt = ''
-        llm_goal.prompt = user_msg
+        llm_goal.prompt = self.user_msg
         llm_goal.max_tokens = self.max_tokens
         llm_goal.temp = self.llm_temp
         llm_goal.seed = self.llm_seed
-
-        with open('/tmp/asr_filter_prompt.txt', 'w') as f:
-            f.write(user_msg)
 
         self.t0 = time.time()
 
@@ -134,20 +132,25 @@ class AsrLlmFilter(Node):
         asr_filter = llm_result_msg.response
 
         self.t1 = time.time()
-        inference_time = self.t1 - self.t0
+        dt = self.t1 - self.t0
 
         self.get_logger().info(
-            f'ASR: {self.asr} | Filtered: {asr_filter} ({inference_time:.2f} s)')
+            f'ASR: {self.asr} | Filtered: {asr_filter} ({dt:.2f} s)')
+
+        # Log prompt and result to file
+        ts = self.str_time()
+        with open(f'/tmp/{ts}_prompt_asr.txt', 'w') as f:
+            f.write(self.log_str('', self.user_msg, asr_filter))
 
         # Filtered noise
         if '$none$' in asr_filter:
             return
 
         # Add back message prefix
-        asr_filter = self.msg_prefix + ' ' + asr_filter
+        asr_filter_prefix = self.msg_prefix + ' ' + asr_filter
 
         # Publish filtered ASR
-        asr_filter_msg = String(data=asr_filter)
+        asr_filter_msg = String(data=asr_filter_prefix)
         self.publisher_.publish(asr_filter_msg)
 
     @staticmethod
@@ -185,7 +188,7 @@ class AsrLlmFilter(Node):
 
         # If we found both tags
         if start_index != -1 and end_index != -1 and start_index < end_index:
-            # Extract the content between the tags, including the tags themselves
+            # Extract the content between the tags, including the tags
             chunk = '\n'.join(lines[start_index:end_index+1])
             return chunk.strip()
         else:
@@ -198,23 +201,14 @@ class AsrLlmFilter(Node):
 
         Args:
             state_chunks: Sequence of state information chunks formatted as:
-            ---
-            topic: /asr
-            ts: 2024-08-31 17:45:23
-            data: <Robot heard voice> User says: Hey robot, I'm heading out for the day.
-            ---
-            topic: /action_response
-            ts: 2024-08-31 17:45:25
-            data: <Robot completed reply action> Robot says: Certainly! I hope you had a productive day. Is there anything you need help with before you leave?
-            ---
-            topic: /asr
-            ts: 2024-08-31 17:45:32
-            data: <Robot heard voice> User says: No, I think I'm all set. Just wanted to say goodbye.
-            ---
-            topic: /action_response
-            ts: 2024-08-31 17:45:34
-            data: <Robot completed reply action> Robot says: That's very kind of you, sweetie. Have a wonderful evening and a safe trip home!
-            ---
+                topic: /asr
+                ts: 2024-08-31 17:45:23
+                data: <Robot heard voice> User says: Hey robot, I'm heading ...
+                ---
+                topic: /action_response
+                ts: 2024-08-31 17:45:25
+                data: <Robot completed reply action> Robot says: Certainly! ...
+                ---
             num: Number of chunks to extract counting from the bottom.
         '''
         # Split the input string into chunks
@@ -230,6 +224,36 @@ class AsrLlmFilter(Node):
         result = '\n---\n'.join(bottom_chunks) + '\n---'
 
         return result
+
+    @staticmethod
+    def str_time() -> str:
+        '''
+        Returns a timestamp in the format '1729514281_1626208'.
+        '''
+        return str(time.time()).replace('.', '_')
+
+    @staticmethod
+    def log_str(sys_msg: str, usr_msg: str, res: str) -> str:
+        '''
+        Returns a log string representing an LLM prompt and response.
+        '''
+        log_str = textwrap.dedent('''
+            <sys_msg>
+            {}
+            </sys_msg>
+            <usr_msg>
+            {}
+            </usr_msg>
+            <res>
+            {}
+            </res>
+            ''')
+        log_str = log_str.format(sys_msg, usr_msg, res)
+
+        # Remove leading/trailing line breaks
+        log_str = log_str.strip()
+
+        return log_str
 
 
 def main(args=None):
