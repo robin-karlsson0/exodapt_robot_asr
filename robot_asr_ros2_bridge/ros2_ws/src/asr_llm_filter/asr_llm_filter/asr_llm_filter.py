@@ -19,7 +19,7 @@ class AsrLlmFilter(Node):
         # Declare parameters with default values
         self.declare_parameter('asr_topic', 'asr')
         self.declare_parameter('asr_filter_topic', 'asr_filter')
-        self.declare_parameter('msg_prefix', '<User said> ')
+        self.declare_parameter('msg_prefix', '<User said>')
         self.declare_parameter('num_state_chunks', 10)
 
         # Get parameter values
@@ -27,6 +27,11 @@ class AsrLlmFilter(Node):
         asr_filter_topic = self.get_parameter('asr_filter_topic').value
         self.msg_prefix = self.get_parameter('msg_prefix').value
         self.num_state_chunks = self.get_parameter('num_state_chunks').value
+
+        self.get_logger().info(f'asr_topic: {asr_topic}')
+        self.get_logger().info(f'asr_filter_topic: {asr_filter_topic}')
+        self.get_logger().info(f'msg_prefix: {self.msg_prefix}')
+        self.get_logger().info(f'num_state_chunks: {self.num_state_chunks}')
 
         self.subscription = self.create_subscription(
             String, asr_topic, self.asr_callback, 10)
@@ -45,6 +50,9 @@ class AsrLlmFilter(Node):
         self.max_tokens = self.get_parameter('max_tokens').value
         self.llm_temp = self.get_parameter('llm_temp').value
         self.llm_seed = self.get_parameter('llm_seed').value
+
+        self.get_logger().info(f'asr_topic: {asr_topic}')
+        self.get_logger().info(f'asr_topic: {asr_topic}')
 
         self.action_client_ = ActionClient(self, LLM, llm_action_server_name)
 
@@ -65,7 +73,7 @@ class AsrLlmFilter(Node):
         self.asr = msg.data
 
         # Remove message prefix
-        self.asr = self.asr.replace(self.msg_prefix, '')
+        self.asr = self.asr.replace(self.msg_prefix + ' ', '')
 
         state_future = self.state_client.call_async(self.state_req)
         state_future.add_done_callback(self.state_callback)
@@ -136,7 +144,7 @@ class AsrLlmFilter(Node):
             return
 
         # Add back message prefix
-        asr_filter = self.msg_prefix + asr_filter
+        asr_filter = self.msg_prefix + ' ' + asr_filter
 
         # Publish filtered ASR
         asr_filter_msg = String(data=asr_filter)
@@ -222,6 +230,7 @@ class AsrLlmFilter(Node):
         result = '\n---\n'.join(bottom_chunks) + '\n---'
 
         return result
+
 
 def main(args=None):
     rclpy.init(args=args)
