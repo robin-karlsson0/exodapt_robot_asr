@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # IP Addresses
-export RIVA_SERVER_URI=192.168.8.120:50051
+export RIVA_SERVER_URI=172.20.137.162:50051
 
 docker run -it --rm \
     --network=host \
